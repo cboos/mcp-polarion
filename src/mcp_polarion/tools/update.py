@@ -49,10 +49,12 @@ def update_work_item(
             # Custom fields can only be set through the validating/batching
             # property setters that pylero builds on the type-specific subclass,
             # not on the base _WorkItem (which has no public set_custom_field).
-            # Load the item once to learn its type, then re-load as that class so
-            # every field -- regular and custom -- batches into one update().
-            wtype = _WorkItem(project_id=pid, work_item_id=work_item_id).type
-            wi = type_specific_class(wtype)(project_id=pid, work_item_id=work_item_id)
+            # Load the item once on the base class, then re-wrap that already-
+            # fetched suds object as the type-specific class -- passing
+            # suds_object skips a second server round-trip -- so every field
+            # (regular and custom) batches into one update().
+            base = _WorkItem(project_id=pid, work_item_id=work_item_id)
+            wi = type_specific_class(base.type)(project_id=pid, suds_object=base._suds_object)
         else:
             wi = _WorkItem(project_id=pid, work_item_id=work_item_id)
         if title:
