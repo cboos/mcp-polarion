@@ -7,6 +7,7 @@ import json
 from typing import Optional
 
 from mcp_polarion._app import mcp, _err
+from mcp_polarion._custom_fields import resolve_local_name, type_specific_class
 from mcp_polarion.pylero_client import default_project
 
 from pylero.base_polarion import BasePolarion
@@ -44,7 +45,16 @@ def update_work_item(
     """
     try:
         pid = project_id or default_project()
-        wi = _WorkItem(project_id=pid, work_item_id=work_item_id)
+        if custom_fields:
+            # Custom fields can only be set through the validating/batching
+            # property setters that pylero builds on the type-specific subclass,
+            # not on the base _WorkItem (which has no public set_custom_field).
+            # Load the item once to learn its type, then re-load as that class so
+            # every field -- regular and custom -- batches into one update().
+            wtype = _WorkItem(project_id=pid, work_item_id=work_item_id).type
+            wi = type_specific_class(wtype)(project_id=pid, work_item_id=work_item_id)
+        else:
+            wi = _WorkItem(project_id=pid, work_item_id=work_item_id)
         if title:
             wi.title = title
         if description:
@@ -56,8 +66,8 @@ def update_work_item(
         if priority:
             wi.priority = priority
         if custom_fields:
-            for k, v in json.loads(custom_fields).items():
-                wi.set_custom_field(k, v)
+            for field_id, value in json.loads(custom_fields).items():
+                setattr(wi, resolve_local_name(wi, field_id), value)
         wi.update()
         return json.dumps({"status": "updated", "work_item_id": work_item_id})
     except Exception as e:

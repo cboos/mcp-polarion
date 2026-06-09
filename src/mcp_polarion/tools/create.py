@@ -6,6 +6,7 @@ import json
 from typing import Optional
 
 from mcp_polarion._app import mcp, _err
+from mcp_polarion._custom_fields import resolve_local_name, type_specific_class
 from mcp_polarion.pylero_client import default_project
 
 from pylero.document import Document
@@ -46,11 +47,21 @@ def create_work_item(
         if priority:
             kwargs["priority"] = priority
         if custom_fields:
-            kwargs.update(json.loads(custom_fields))
-        wi = _WorkItem.create(
-            pid, work_item_type, title,
-            description or "", status or "open", **kwargs,
-        )
+            # Custom fields must go through the type-specific subclass: the base
+            # _WorkItem.create() would set them as dead instance attributes that
+            # the SOAP layer silently drops. The type-specific create() also
+            # validates required custom fields. Resolve each id to its pylero
+            # snake_cased property name so the property setter handles it.
+            cls = type_specific_class(work_item_type)
+            cls.get_custom_fields(pid)  # populate _cls_suds_map for name resolution
+            for field_id, value in json.loads(custom_fields).items():
+                kwargs[resolve_local_name(cls, field_id)] = value
+            wi = cls.create(pid, title, description or "", status or "open", **kwargs)
+        else:
+            wi = _WorkItem.create(
+                pid, work_item_type, title,
+                description or "", status or "open", **kwargs,
+            )
         return json.dumps({
             "status": "created",
             "work_item_id": wi.work_item_id,
