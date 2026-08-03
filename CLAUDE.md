@@ -31,6 +31,9 @@ namespace. Consequences:
 - `__init__.py` populates those vars from `~/.mcp-polarion.env` (`override=False`, so a real env var
   wins). It lives there because importing *any* submodule runs it first; `main()` would be far too
   late, and `pylero_client.py` too late for anything importing pylero ahead of it.
+- The same file forces `POLARION_DISABLE_MANUAL_AUTH` on. Without it a bad or expired token makes
+  pylero `getpass()` for a new one on stdin — which an MCP server has given over to the protocol —
+  so the process hangs silently instead of raising. Precedence is env > file > this default.
 - `POLARION_VERIFY_SSL=false` is honoured by a module-level monkeypatch of `ssl._create_default_https_context`
   in `pylero_client.py`. **Every tool module must import from `mcp_polarion.pylero_client` before it
   imports anything from `pylero`** — the existing import ordering is load-bearing, not stylistic.
