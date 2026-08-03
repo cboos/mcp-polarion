@@ -10,8 +10,6 @@ uvx --from ./mcp-polarion mcp-polarion
 
 ## Configuration
 
-Set these environment variables:
-
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `POLARION_URL` | Yes | Base URL ending with `/polarion` |
@@ -19,14 +17,46 @@ Set these environment variables:
 | `POLARION_TOKEN` | Yes | Personal access token |
 | `POLARION_PROJECT` | Yes | Default project ID |
 | `POLARION_VERIFY_SSL` | No | `true` (default) or `false` |
+| `POLARION_DISABLE_MANUAL_AUTH` | No | Any non-empty value (the default). Empty restores pylero's interactive token prompt — which an MCP server cannot answer, so a bad token would hang instead of failing |
+
+At startup the server loads `~/.mcp-polarion.env` (a plain `KEY=value` file) into
+the environment, so the token lives in **one** place instead of being copied into
+every project's `.mcp.json`:
+
+```sh
+POLARION_URL=https://polarion.example.com/polarion
+POLARION_USERNAME=your-user
+POLARION_TOKEN=your-token
+POLARION_PROJECT=your-project
+POLARION_VERIFY_SSL=true
+```
+
+Variables already set in the environment always win, so an explicit `env` block or
+CI-injected credentials override the file. A missing file is not an error.
 
 ### MCP config entry
+
+With `~/.mcp-polarion.env` in place, no `env` block is needed — which makes the
+entry safe to register once at user scope and reuse across projects. Use an
+absolute path or a git URL for `--from`: a relative one resolves against the
+server's working directory, which differs per project.
 
 ```json
 {
   "polarion": {
     "command": "uvx",
-    "args": ["--from", "./mcp-polarion", "mcp-polarion"],
+    "args": ["--from", "git+https://github.com/cboos/mcp-polarion", "mcp-polarion"]
+  }
+}
+```
+
+To override per project (or to skip the file entirely), add the variables back:
+
+```json
+{
+  "polarion": {
+    "command": "uvx",
+    "args": ["--from", "/path/to/mcp-polarion", "mcp-polarion"],
     "env": {
       "POLARION_URL": "https://polarion.example.com/polarion",
       "POLARION_USERNAME": "your-user",
@@ -126,6 +156,7 @@ Set these environment variables:
 
 ```
 mcp_polarion/
+  __init__.py          Loads ~/.mcp-polarion.env before anything imports pylero
   _app.py              FastMCP instance + _err() helper
   pylero_client.py     Serialization helpers (work items, test runs, etc.)
   server.py            Thin entrypoint — imports tool modules, defines main()
