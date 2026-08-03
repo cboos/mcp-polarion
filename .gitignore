@@ -6,6 +6,9 @@ __pycache__/
 dist/
 *.egg-info/
 
+# Local-only agent notes
+CLAUDE.local.md
+
 # OS
 .DS_Store
 Thumbs.db
