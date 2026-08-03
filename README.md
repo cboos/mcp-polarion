@@ -10,8 +10,6 @@ uvx --from ./mcp-polarion mcp-polarion
 
 ## Configuration
 
-Set these environment variables:
-
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `POLARION_URL` | Yes | Base URL ending with `/polarion` |
@@ -20,7 +18,36 @@ Set these environment variables:
 | `POLARION_PROJECT` | Yes | Default project ID |
 | `POLARION_VERIFY_SSL` | No | `true` (default) or `false` |
 
+At startup the server loads `~/.mcp-polarion.env` (a plain `KEY=value` file) into
+the environment, so the token lives in **one** place instead of being copied into
+every project's `.mcp.json`:
+
+```sh
+POLARION_URL=https://polarion.example.com/polarion
+POLARION_USERNAME=your-user
+POLARION_TOKEN=your-token
+POLARION_PROJECT=your-project
+POLARION_VERIFY_SSL=true
+```
+
+Variables already set in the environment always win, so an explicit `env` block or
+CI-injected credentials override the file. A missing file is not an error.
+
 ### MCP config entry
+
+With `~/.mcp-polarion.env` in place, no `env` block is needed — which makes the
+entry safe to register once at user scope and reuse across projects:
+
+```json
+{
+  "polarion": {
+    "command": "uvx",
+    "args": ["--from", "./mcp-polarion", "mcp-polarion"]
+  }
+}
+```
+
+To override per project (or to skip the file entirely), add the variables back:
 
 ```json
 {
@@ -126,6 +153,7 @@ Set these environment variables:
 
 ```
 mcp_polarion/
+  __init__.py          Loads ~/.mcp-polarion.env before anything imports pylero
   _app.py              FastMCP instance + _err() helper
   pylero_client.py     Serialization helpers (work items, test runs, etc.)
   server.py            Thin entrypoint — imports tool modules, defines main()

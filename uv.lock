@@ -712,12 +712,14 @@ source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "pylero" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", specifier = ">=3.0.0" },
     { name = "pylero", specifier = ">=0.2.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
 [[package]]

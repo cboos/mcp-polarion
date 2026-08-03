@@ -28,6 +28,9 @@ namespace. Consequences:
   reachability**. You cannot smoke-test imports offline, and startup costs ~12s on the first WSDL fetch.
 - Credentials come from `POLARION_*` env vars, read by pylero itself (falling back to `~/.pylero`).
   This package never passes them explicitly — it only reads `POLARION_PROJECT` via `default_project()`.
+- `__init__.py` populates those vars from `~/.mcp-polarion.env` (`override=False`, so a real env var
+  wins). It lives there because importing *any* submodule runs it first; `main()` would be far too
+  late, and `pylero_client.py` too late for anything importing pylero ahead of it.
 - `POLARION_VERIFY_SSL=false` is honoured by a module-level monkeypatch of `ssl._create_default_https_context`
   in `pylero_client.py`. **Every tool module must import from `mcp_polarion.pylero_client` before it
   imports anything from `pylero`** — the existing import ordering is load-bearing, not stylistic.
